@@ -9,7 +9,6 @@ main();
 function main() {
   const app = express();
   const pathStatic = path.join(__dirname, "..", "public/");
-
   app.use(express.static(pathStatic));
   app.get("/", (req, res) => {
     firebase.database().ref("test").push({
