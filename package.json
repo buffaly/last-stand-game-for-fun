@@ -1,0 +1,12 @@
+{
+  "name": "last-stand-game-for-fun",
+  "version": "1.0.0",
+  "description": "This is the super epic mega clever game on the planet (Web For Fun)",
+  "main": "index.js",
+  "repository": "https://github.com/buffaly/last-stand-game-for-fun.git",
+  "author": "Wasit Jingjit <Buffalo660@gmail.com>",
+  "license": "UNLICENSE",
+  "dependencies": {
+    "phaser": "^3.18.1"
+  }
+}
