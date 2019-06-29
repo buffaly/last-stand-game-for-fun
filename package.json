@@ -6,7 +6,11 @@
   "repository": "https://github.com/buffaly/last-stand-game-for-fun.git",
   "author": "Wasit Jingjit <Buffalo660@gmail.com>",
   "license": "UNLICENSE",
+  "scripts": {
+    "start": "nodemon"
+  },
   "dependencies": {
+    "express": "^4.17.1",
     "phaser": "^3.18.1"
   }
 }
