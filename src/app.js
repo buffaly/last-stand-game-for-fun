@@ -30,7 +30,7 @@ function main() {
     res.sendFile(pathStatic + 'controller.html');
   });
   app.get('/game', (req, res) => {
-    res.sendFile(pathStatic + 'temp_game.html');
+    res.sendFile(pathStatic + 'game.html');
   });
 
   app.listen(PORT, () => {
