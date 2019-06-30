@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="http://cdn.jsdelivr.net/npm/phaser@3.1.1/dist/phaser.js"></script>
+    <style type="text/css">
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <script type="text/javascript">
+      // setting your domain name to connect server
+      var socket = io.connect('http://10.1.3.248');
+
+      var _this;
+      var config = {
+        type: Phaser.AUTO,
+        width: 1200,
+        height: 800,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 300 },
+            debug: false,
+          },
+        },
+      };
+      var startGame = false;
+      var allUser = {};
+      var groupPlayer;
+      //   var stars;
+      var deadZone;
+      var platforms;
+      var cursors;
+      var score = 0;
+      var scoreText;
+      var key;
+
+      window.onload = function() {
+        game = new Phaser.Game(config);
+        game.scene.add('PlayGame', playGame, true);
+      };
+
+      var playGame = function() {
+        _this = this;
+        console.log(_this);
+      };
+
+      function getRandomColor() {
+        var letters = '0123456789ABCDEF';
+        var color = '#';
+        for (var i = 0; i < 6; i++) {
+          color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+      }
+
+      function createPlayer(user_id, username) {
+        var newPlayer = _this.physics.add.sprite(config.width / 2, 0, 'dude');
+        _this.physics.add.collider(groupPlayer, newPlayer);
+
+        newPlayer.life = 10;
+        newPlayer.user_id = String(user_id);
+        newPlayer.username = String(username);
+        newPlayer.setTint((Math.random() * 0xffffff) << 0);
+        groupPlayer.add(newPlayer);
+        newPlayer.setBounce(0.5);
+        newPlayer.setCollideWorldBounds(true);
+      }
+
+      //   function collectStar(allUser, star) {
+      //     star.disableBody(true, true);
+      //     score += 10;
+      //     scoreText.setText('Score: ' + score);
+      //   }
+
+      playGame.prototype = {
+        preload: function() {
+          _this.load.image('sky', 'assets/sky.png');
+          _this.load.image('ground', 'assets/platform.png');
+          _this.load.image('deadzone', 'assets/platform.png');
+          _this.load.image('star', 'assets/star.png');
+          _this.load.spritesheet('dude', 'assets/dude.png', {
+            frameWidth: 32,
+            frameHeight: 48,
+          });
+        },
+        create: function() {
+          key = _this.input.keyboard.addKeys('W,A,S,D');
+          _this.add.image(400, 300, 'sky').setScale(4);
+          deadZone = _this.physics.add.staticGroup();
+          deadZone
+            .create(600, 800, 'deadzone')
+            .setScale(5, 1)
+            .refreshBody();
+          platforms = _this.physics.add.group();
+
+          for (var i = 0; i < 5; i++) {
+            platforms
+              .create(400, 0, 'ground')
+              .setScale(0.3, 1)
+              .setOrigin(0, 0);
+          }
+
+          for (var i = 0; i < 20; i++) {
+            platforms
+              .create(400, 0, 'ground')
+              .setScale(0.1, 1)
+              .setOrigin(0, 0);
+          }
+
+          for (var i = 0; i < 5; i++) {
+            platforms
+              .create(400, 0, 'ground')
+              .setScale(0.4, 1)
+              .setOrigin(0, 0);
+          }
+          for (var i = 0; i < 3; i++) {
+            platforms
+              .create(400, 0, 'ground')
+              .setScale(0.8, 1)
+              .setOrigin(0, 0);
+          }
+
+          groupPlayer = _this.physics.add.group({ allowGravity: true });
+
+          socket.on('init_new_user', function(data) {
+            if (!startGame) {
+              createPlayer(data.user_id, data.username);
+            }
+          });
+
+          socket.on('user_logout', function(data) {
+            groupPlayer.getChildren().forEach(function(player) {
+              if (data.user_id === player.user_id) {
+                player.life = 0;
+                player.destroy();
+                player = null;
+              }
+            });
+          });
+
+          socket.on('user_action', function(data) {
+            groupPlayer.getChildren().forEach(function(player) {
+              if (data.user_id === player.user_id) {
+                switch (data.action) {
+                  case 'left':
+                    player.setVelocityX(-160);
+                    player.anims.play('left', true);
+                    break;
+                  case 'right':
+                    player.setVelocityX(160);
+                    player.anims.play('right', true);
+                    break;
+                  case 'up':
+                    player.setVelocityY(-200);
+                    break;
+                  case 'stop':
+                    player.setVelocityX(0);
+                    player.anims.play('turn', true);
+                    break;
+                }
+              }
+            });
+          });
+
+          _this.anims.create({
+            key: 'left',
+            frames: _this.anims.generateFrameNumbers('dude', {
+              start: 0,
+              end: 3,
+            }),
+            frameRate: 10,
+            repeat: -1,
+          });
+          _this.anims.create({
+            key: 'turn',
+            frames: [{ key: 'dude', frame: 4 }],
+            frameRate: 20,
+          });
+          _this.anims.create({
+            key: 'right',
+            frames: _this.anims.generateFrameNumbers('dude', {
+              start: 5,
+              end: 8,
+            }),
+            frameRate: 10,
+            repeat: -1,
+          });
+          cursors = _this.input.keyboard.createCursorKeys();
+
+          platforms.children.iterate(function(child) {
+            child.setBounceY(0);
+            child.x = Phaser.Math.FloatBetween(0, config.width);
+          });
+
+          scoreText = _this.add.text(16, 16, 'The Last Stand', {
+            fontSize: '32px',
+            fill: '#000',
+          });
+
+          _this.physics.add.collider(groupPlayer, platforms);
+
+          _this.physics.add.overlap(
+            groupPlayer,
+            deadZone,
+            function(player, deadFloor) {
+              player.y = 10;
+              player.x = config.width / 2;
+              player.setVelocityY(100);
+              if (startGame) {
+                player.life -= 1;
+              }
+              if (player.life <= 0) {
+                player.destroy();
+                player = null;
+              }
+            },
+            null,
+            _this,
+          );
+        },
+        update: function() {
+          platforms.children.iterate(function(child) {
+            child.setVelocityY(200);
+            if (child.y >= config.height) {
+              child.x =
+                Math.floor(Math.random() * Math.floor(config.width / 70)) * 100;
+              child.y =
+                -Math.floor(Math.random() * Math.floor(config.height / 100)) *
+                100;
+              child.setVelocityY(100);
+              child.setVelocityX(0);
+            }
+          });
+          if (startGame) {
+            var theWinner = [];
+            groupPlayer.getChildren().forEach(function(player) {
+              if (player.life > 0) {
+                theWinner.push(player);
+              }
+            });
+            if (theWinner.length === 1) {
+              theWinner[0].life = 100000;
+              scoreText.setText(theWinner[0].username);
+            }
+          }
+    </script>
+  </body>
+</html>
